@@ -1,6 +1,10 @@
 package com.jonat.graphingsensor;
 
 import android.graphics.Color;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.widget.LinearLayout;
@@ -13,21 +17,28 @@ import org.achartengine.model.XYMultipleSeriesDataset;
 import org.achartengine.model.XYSeries;
 import org.achartengine.renderer.XYMultipleSeriesRenderer;
 import org.achartengine.renderer.XYSeriesRenderer;
+import org.achartengine.tools.PanListener;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements SensorEventListener {
+
+    private SensorManager sensorManager;
+    private Sensor accelerometer;
+    private XYSeries series;
+    private GraphicalView chartView;
+    private double counter = 0;
+    private XYMultipleSeriesRenderer mRenderer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        sensorManager = (SensorManager)getSystemService(SENSOR_SERVICE);
+        accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+
+
         //this is one line of data
-        XYSeries series = new XYSeries("test chart");
-        series.add(0, 1);
-        series.add(1,2);
-        series.add(2,3);
-        series.add(3,4);
-        series.add(4,5);
+        series = new XYSeries("Accelerometer");
 
         //have to add all the line of data
         XYMultipleSeriesDataset mSeries = new XYMultipleSeriesDataset();
@@ -37,28 +48,68 @@ public class MainActivity extends AppCompatActivity {
         XYSeriesRenderer renderer = new XYSeriesRenderer();
         renderer.setLineWidth(2);
         renderer.setColor(Color.RED);
-        renderer.setDisplayChartValues(true);
         renderer.setPointStyle(PointStyle.CIRCLE);
 
         //add the settings to a multi renderer
-        XYMultipleSeriesRenderer mRenderer = new XYMultipleSeriesRenderer();
+        mRenderer = new XYMultipleSeriesRenderer();
         mRenderer.addSeriesRenderer(renderer);
 
         //chart settings
         mRenderer.setMarginsColor(Color.argb(0x00, 0xff, 0x00, 0x00)); // Disable Pan on two axis
-        mRenderer.setPanEnabled(false, false);
+        mRenderer.setPanEnabled(false,false);
         mRenderer.setYAxisMax(35);
-        mRenderer.setYAxisMin(0);
+        mRenderer.setYAxisMin(-35);
         mRenderer.setShowGrid(true); // we show the grid
 
         //the graph view
-        GraphicalView chartView = ChartFactory.
+        chartView = ChartFactory.
                 getLineChartView(getApplicationContext(),mSeries,mRenderer);
+        chartView.addPanListener(new PanListener() {
+            @Override
+            public void panApplied() {
+
+            }
+        });
 
         //handle to the linearlayout
         LinearLayout chartLyt = (LinearLayout) findViewById(R.id.chart);
 
         //add the chart to the view
         chartLyt.addView(chartView,0);
+
+    }
+
+    @Override
+    protected void onResume(){
+        super.onResume();
+        sensorManager.registerListener(this, accelerometer,SensorManager.SENSOR_DELAY_NORMAL);
+        if(chartView != null){
+            chartView.repaint();
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        sensorManager.unregisterListener(this);
+    }
+
+    @Override
+    public void onSensorChanged(SensorEvent sensorEvent) {
+//        synchronized (this){
+            double xA = sensorEvent.values[0] + counter;
+            double yA = sensorEvent.values[1];
+            mRenderer.setXAxisMin(counter);
+            counter++;
+            series.add(xA,yA);
+        if(counter % 100 == 0) {
+            chartView.repaint();
+        }
+//        }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int i) {
+
     }
 }
