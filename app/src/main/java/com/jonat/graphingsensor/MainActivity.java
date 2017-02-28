@@ -82,7 +82,7 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
     @Override
     protected void onResume(){
         super.onResume();
-        sensorManager.registerListener(this, accelerometer,SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(this, accelerometer,1000);
         if(chartView != null){
             chartView.repaint();
         }
@@ -96,16 +96,14 @@ public class MainActivity extends AppCompatActivity implements SensorEventListen
 
     @Override
     public void onSensorChanged(SensorEvent sensorEvent) {
-//        synchronized (this){
+        synchronized (this) {
             double xA = sensorEvent.values[0] + counter;
             double yA = sensorEvent.values[1];
-            mRenderer.setXAxisMin(counter);
+//            mRenderer.setXAxisMin(counter);
             counter++;
-            series.add(xA,yA);
-        if(counter % 100 == 0) {
+            series.add(xA, yA);
             chartView.repaint();
         }
-//        }
     }
 
     @Override
